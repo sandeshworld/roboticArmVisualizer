@@ -1,10 +1,27 @@
 # !/usr/bin/env python3
 
 # Copyright: Sandesh Banskota 2021
+# Built for fun & independently to apply things I am learning in a Robotic Manipulations Course 
+# While trying to visualize the linkages working within angular constraints for assignments,
+# I had a hard time finding a tool to create a view movement of custom linkages, so I built this tool
+# to allow user to create custom links (length, min & max angles, initial angle) and to modify the angle
+# for each point.
+
+# In the future, I would like to work on a few things.
+#
+# TODO: Further Things to improve on
+# Display Local Link Angle Under Each Link Created
+# Display Cartesian Coordinate for Each Location
+# Add a button to print out vertex angle at each link and respective cartesian coordinate in a CSV file
+# add a desired target location to UI (w/ a marker indicating the spot)
+# apply a static inverse kinematic solver button, and find a solution to reach the location within the angle constraints 
+# develop a static inverse kinematic solver
+# Add a kinetics + velocity mode to allow velocity based position control
+
 
 # from graphics import *
 # coding for 2d for now
-from tkinter import Tk, Canvas, Button, Frame, BOTH, BOTTOM
+from tkinter import Tk, Canvas, Button, Frame, BOTH, BOTTOM, Scale, LEFT, Entry, TOP, END, Label, RIGHT
 
 import math
 from tkinter.constants import ALL
@@ -151,32 +168,182 @@ class RoboticLinks:
             print(links)
 
 
+class NewLinkInput():
+    
+    def __init__(self, root):
+        self.height = 300
+        self.width = 200
+        self.myCanvas = Canvas(root, bg="white", height=300, width=200)
+        self.slider = Scale(
+            self.myCanvas,
+            from_=1,
+            to=100,
+            orient='vertical',  # horizontal
+        )
+        self.slider.pack(side=LEFT)   
+        button = Button(self.myCanvas, text="Add Link")
+        # button.pack(x=self.width/2, y=self.height-35)
+        button.pack(side=BOTTOM)
+        
+        self.entryRange = Entry(self.myCanvas)
+        self.entryRange.insert(END, '0, 180')
+        self.entryRange.pack(side=TOP)
+
+        self.entryAngle = Entry(self.myCanvas)
+        self.entryAngle.insert(END, '5')
+        self.entryAngle.pack(side=TOP)
+
+
+    def callbackCreateLink(self):
+        print("New Link Created")
+
+        inputEntryRange = self.entryRange.get()
+        minMaxValue = {'maxAngle': 0, 'minAngle': 0}
+        inputEntryAngle = 0
+
+        if inputEntryRange == "":
+            minMaxValue = None
+        else:
+            try:
+                splitInput = inputEntryRange.split(",")
+                if (len(splitInput) != 2):
+                    return None
+                else:
+                    minMaxValue['minAngle'] = float(splitInput[0])
+                    minMaxValue['maxAngle'] = float(splitInput[1])
+            except:
+                return None
+        
+        try:
+            inputEntryAngle = float(self.entryAngle.get())
+        except:
+            return None
+
+        length = self.slider.get()
+
+        link = Link(length, inputEntryAngle, minMaxAngles=minMaxValue, deg=True)
+
+        return link
+
+        
+    def getCanvasObject(self):
+        return self.myCanvas
+
 class Example(Frame):
 
     def __init__(self, roboticArm):
         super().__init__()
-        self.roboticArm = roboticArm
-        self.positions = []
-
-
+        
         self.master.title("Lines")
         self.pack(fill=BOTH, expand=1)
-
         self.canvas = Canvas(self)
 
-        self.links = self.roboticArm.getLinks()
-        index = 0
-        numLinks = len(self.links)
-        for link in self.links:
-            identifier = str(index)
-            Button(self, text="Inc." + str(index), command=lambda x=link: self.callbackFuncInc(x)).place(x=index*(screenWidth/numLinks)+20, y=screenHeight-65)
-            Button(self, text="Dec." + str(index), command=lambda x=link: self.callbackFuncDec(x)).place(x=index*(screenWidth/numLinks)+20, y=screenHeight-35)
-            index += 1
+        self.height = 300
+        self.width = 100
+        self.newLinkInput(self).place(x=-5, y=0)
 
+        # input.getCanvasObject().place(x=input.width/2, y=screenHeight/2)
+        self.roboticArm = roboticArm
+        self.links = []
+        self.positions = []
+
+        # keeping track of dynamically created buttons to get rid of them later
+        self.buttonsList = []
+        
+        # possible to pass in links programatically
+        # link1 = Link(100, 90, minMaxAngles={'maxAngle': 90, 'minAngle': 0}, deg=True)
+        # link2 = Link(100, 0, minMaxAngles={'maxAngle': 180, 'minAngle': 0}, deg=True)
+        # link3 = Link(50, 90, minMaxAngles={'maxAngle': 90, 'minAngle': 0}, deg=True)
+        # self.links = [link1, link2, link3]
+
+        self.links = []
+
+        for i in self.links:
+            self.roboticArm.addLink(i)
 
         # self.positions = self.roboticArm.calculateVertexPositions()
         self.initUI()
 
+    def newLinkInput(self,root):
+        self.myCanvas = Canvas(root, bg="white", height=self.height, width=self.width)
+        self.slider = Scale(
+            self.myCanvas,
+            from_=1,
+            to=100,
+            orient='vertical',  # horizontal
+        )
+        self.slider.pack(side=LEFT)   
+        button = Button(self.myCanvas, text="Add Link", command=self.callbackFromLinkCreate)
+        # button.pack(x=self.width/2, y=self.height-35)
+        button.pack(side=BOTTOM)
+        
+        label = Label(self.myCanvas, text="<-- Slider Link Length")
+        label.pack(side=TOP)
+
+        self.minMaxCanvas = Canvas(self.myCanvas, bg="white")
+        Label(self.minMaxCanvas, text="min \u03B8, max \u03B8").pack(side=LEFT)
+        self.entryRange = Entry(self.minMaxCanvas, width=8)
+        self.entryRange.insert(END, '0, 180')
+        self.entryRange.pack(side=RIGHT)
+        self.minMaxCanvas.pack(side=TOP)
+
+        self.currentAngCanvas = Canvas(self.myCanvas,bg="white")
+        Label(self.currentAngCanvas, text="Initial \u03B8  ").pack(side=LEFT)
+        self.entryAngle = Entry(self.currentAngCanvas, width=11)
+        self.entryAngle.insert(END, '5')
+        self.entryAngle.pack(side=RIGHT)
+        self.currentAngCanvas.pack(side=TOP)
+
+        return self.myCanvas
+    
+    def callbackFromLinkCreate(self):
+        print("New Link Created")
+
+        inputEntryRange = self.entryRange.get()
+        minMaxValue = {'maxAngle': 0, 'minAngle': 0}
+        inputEntryAngle = 0
+
+        if inputEntryRange == "":
+            minMaxValue = None
+        else:
+            try:
+                splitInput = inputEntryRange.split(",")
+                if (len(splitInput) != 2):
+                    return None
+                else:
+                    minMaxValue['minAngle'] = float(splitInput[0])
+                    minMaxValue['maxAngle'] = float(splitInput[1])
+            except:
+                return None
+        
+        try:
+            inputEntryAngle = float(self.entryAngle.get())
+        except:
+            return None
+
+        length = self.slider.get()
+
+        link = Link(length, inputEntryAngle, minMaxAngles=minMaxValue, deg=True)
+
+        # reset screen after adding link
+        self.roboticArm.addLink(link)
+        # self.canvas.delete(ALL)
+
+        for b in self.buttonsList:
+            print("Button Found & Deleting")
+            b.place_forget()
+
+        # self.buttonsList = []
+
+        self.canvas.delete('all')
+        
+        # self.delete('all')
+
+
+        self.initUI()
+
+
+        
 
     def callbackFuncInc(self,link):
         print("increase pressed for " + str(link.getLocalAngle()))
@@ -189,11 +356,30 @@ class Example(Frame):
         print("decrease pressed for " + str(link.getLocalAngle()))
         link.setLocalAngle(link.currentLocalAngle-5*deg2rad)
         self.canvas.delete(ALL)
-        
         self.initUI()
         # self.positions = self.roboticArm.calculateVertexPositions()
 
     def initUI(self):
+        
+        # for link in self.links:
+        #         print("Adding: ")
+        #         print(link)
+        #         self.roboticArm.addLink(link)
+
+        self.links = self.roboticArm.getLinks()
+        index = 0
+        numLinks = len(self.links)
+
+        for link in self.links:
+            identifier = str(index)
+            b1 = Button(self.canvas, text="Inc." + str(index), command=lambda x=link: self.callbackFuncInc(x))
+            b1.place(x=index*(screenWidth/numLinks)+20, y=screenHeight-65)
+            b2 = Button(self.canvas, text="Dec." + str(index), command=lambda x=link: self.callbackFuncDec(x))
+            b2.place(x=index*(screenWidth/numLinks)+20, y=screenHeight-35)
+            self.buttonsList.append(b1)
+            self.buttonsList.append(b2)
+            index += 1
+
 
         self.positions = self.roboticArm.calculateVertexPositions()
 
@@ -222,6 +408,8 @@ class Example(Frame):
         
         
         self.canvas.pack(fill=BOTH, expand=1)
+        # self.canvas.place(x=0,y=0)
+        
 
 
 def main():
@@ -229,17 +417,6 @@ def main():
 
     origin = (0, 0)
     roboticArm = RoboticLinks(origin)
-
-    
-    link1 = Link(100, 90, minMaxAngles={'maxAngle': 90, 'minAngle': 0}, deg=True)
-    link2 = Link(100, 0, minMaxAngles={'maxAngle': 180, 'minAngle': 0}, deg=True)
-    link3 = Link(50, 90, minMaxAngles={'maxAngle': 90, 'minAngle': 0}, deg=True)
-
-    # add links to object
-    links = [link1, link2, link3]
-    
-    for link in links:
-            roboticArm.addLink(link)
 
     ex = Example(roboticArm)
 
