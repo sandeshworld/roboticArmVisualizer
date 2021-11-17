@@ -2,8 +2,8 @@
 Python GUI application to create custom linkages and adjust joint angles.
 
 
-Image be outdated:
-![Application Image](https://github.com/sandeshworld/roboticArmVisualizer/blob/main/readmeImgs/guiImg.png)
+Image might be outdated:
+<img src="https://github.com/sandeshworld/roboticArmVisualizer/blob/main/readmeImgs/guiImg.png" alt="Application Image" width="60%"/>
 
 
 # Copyright: Sandesh Banskota 2021
