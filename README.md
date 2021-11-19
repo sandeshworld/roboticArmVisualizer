@@ -1,5 +1,5 @@
 # roboticArmVisualizer
-Python GUI application to create custom linkages and adjust joint angles. In the future, I plan to add 2d inverse kinematics solver so it can be used for planning too. Ultimately, we could also take it to 3d kinematics, though I would like to do that with WebGL and JavaScript. If you find this interesting and would like to work with me to add features, please reach out to me.
+Python GUI application to create custom linkages and adjust joint angles. In the future, I plan to add 2d inverse kinematics solver so it can be used for planning too. Ultimately, I would also take it to 3d kinematics, though I would like to do that with WebGL and JavaScript on a browser. If you find this interesting and would like to work with me to add features, please reach out to me.
 
 
 
